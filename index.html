@@ -1,0 +1,553 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>証明写真風画像メーカー</title>
+
+  <!-- Noto Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;600&display=swap" rel="stylesheet">
+
+  <style>
+    :root{
+      --bg:#FFFFFF;
+      --text:#1f2d3a;
+      --muted:#6b7a88;
+      --line:#e6edf3;
+      --accent:#539fd8;
+      --card:#ffffff;
+    }
+    html,body{height:100%;}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:"Noto Sans JP","Noto Sans",system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    }
+    .wrap{
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 20px 16px 40px;
+      display:grid;
+      gap:16px;
+      grid-template-columns: 360px 1fr;
+      align-items:start;
+    }
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr;}
+    }
+    .panel{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:14px;
+      box-shadow: 0 4px 18px rgba(20,40,60,.05);
+    }
+    h1{
+      font-size:16px;
+      margin:0 0 10px 0;
+      font-weight:600;
+      letter-spacing:.02em;
+    }
+    .sub{
+      font-size:12px;
+      color:var(--muted);
+      margin:0 0 12px 0;
+      line-height:1.5;
+    }
+    .row{display:grid; gap:10px; margin:10px 0;}
+    label{
+      display:block;
+      font-size:12px;
+      color:var(--muted);
+      margin:0 0 6px 0;
+    }
+    input[type="file"], input[type="text"], input[type="range"]{
+      width:100%;
+    }
+    input[type="text"]{
+      box-sizing:border-box;
+      padding:10px 10px;
+      border:1px solid var(--line);
+      border-radius:12px;
+      font-size:14px;
+      outline:none;
+    }
+    input[type="text"]:focus{
+      border-color: rgba(83,159,216,.6);
+      box-shadow:0 0 0 4px rgba(83,159,216,.12);
+    }
+    .btns{display:flex; gap:10px; flex-wrap:wrap; margin-top:10px;}
+    button{
+      appearance:none;
+      border:1px solid var(--line);
+      background:#fff;
+      border-radius:12px;
+      padding:10px 12px;
+      font-weight:600;
+      cursor:pointer;
+    }
+    button.primary{
+      border-color: rgba(83,159,216,.45);
+      box-shadow:0 6px 18px rgba(83,159,216,.12);
+    }
+    button:active{transform: translateY(1px);}
+    .hint{
+      font-size:12px;
+      color:var(--muted);
+      line-height:1.6;
+      margin-top:10px;
+    }
+    .canvasWrap{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      overflow:auto;
+      background:#fff;
+      border:1px solid var(--line);
+      border-radius:14px;
+      padding:12px;
+      min-height: 420px;
+    }
+    canvas{
+      max-width: 100%;
+      height: auto;
+      image-rendering: auto;
+      background:#fff;
+    }
+    .mini{
+      font-size:12px;
+      color:var(--muted);
+      display:flex;
+      justify-content:space-between;
+      gap:10px;
+      margin-top:8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="panel">
+      <h1>証明写真風画像メーカー</h1>
+
+      <div class="row">
+        <div>
+          <label>写真（必須）</label>
+          <input id="photoInput" type="file" accept="image/*">
+        </div>
+        <div>
+          <label>ロゴ（任意）</label>
+          <input id="logoInput" type="file" accept="image/*">
+        </div>
+        <div>
+          <label>右側テキスト（任意）</label>
+          <input id="sideText" type="text" placeholder="例：Yawaraka University Library など">
+        </div>
+
+        <div>
+          <label>写真：ズーム</label>
+          <input id="photoZoom" type="range" min="1" max="2.5" step="0.01" value="1">
+          <div class="mini"><span>小</span><span>大</span></div>
+        </div>
+        <div>
+          <label>写真：左右オフセット</label>
+          <input id="photoOffX" type="range" min="-0.3" max="0.3" step="0.001" value="0">
+        </div>
+        <div>
+          <label>写真：上下オフセット</label>
+          <input id="photoOffY" type="range" min="-0.3" max="0.3" step="0.001" value="0">
+        </div>
+
+        <div>
+          <label>ロゴ：ズーム</label>
+          <!-- ★下限を0.3にして「必ず収まるまで引ける」 -->
+          <input id="logoZoom" type="range" min="0.3" max="2.5" step="0.01" value="1">
+          <div class="mini"><span>小</span><span>大</span></div>
+        </div>
+        <div>
+          <label>ロゴ：左右オフセット</label>
+          <input id="logoOffX" type="range" min="-0.3" max="0.3" step="0.001" value="0">
+        </div>
+        <div>
+          <label>ロゴ：上下オフセット</label>
+          <input id="logoOffY" type="range" min="-0.3" max="0.3" step="0.001" value="0">
+        </div>
+      </div>
+
+      <div class="btns">
+        <button class="primary" id="saveBtn">PNGで保存</button>
+        <button id="resetBtn">調整をリセット</button>
+        <button id="reloadTplBtn">テンプレ再読込</button>
+      </div>
+
+      <div class="hint">
+免責事項
+<ul>
+  <li>本ツールは、利用者ご自身の責任においてご利用ください。</li>
+<li>本ツールの利用、または本ツールを用いて作成された画像の使用により生じたいかなる損害・トラブル等についても、制作者は一切の責任を負いません。</li>
+</ul>
+注意事項
+  <ul>
+<li>本ツールは、画像をブラウザ内で処理する仕組みを採用しており、画像データがサーバへ送信されることはありません。ただし、利用者の端末環境（ブラウザ、拡張機能等）による影響については保証できません。</li>
+<li>作成した画像の著作権・肖像権・利用条件等については、必ず利用者ご自身でご確認ください。</li>
+<li>本ツールは、予告なく仕様変更または公開を終了する場合があります。</li>
+<li>本ツールの動作はすべての端末・ブラウザでの完全な動作を保証するものではありません。
+</li></ul>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h1>プレビュー</h1>
+      <div class="canvasWrap">
+        <canvas id="out" width="1500" height="1000"></canvas>
+      </div>
+      <p class="sub" style="margin-top:10px;">
+        ※表示＝出力内容です。保存すると、このままPNGになります。
+      </p>
+    </div>
+  </div>
+<footer style="margin-top:40px; padding:20px 0; text-align:center; font-size:12px; color:#6b7a88;">
+  Created by
+  <a href="https://yawatosho.hateblo.jp/" target="_blank" rel="noopener noreferrer"
+     style="color:#539fd8; text-decoration:none;">
+    やわらか図書館学
+  </a>
+</footer>
+
+<script>
+(() => {
+  // =========================
+  // テンプレと座標（必要ならここを調整）
+  // =========================
+  const TEMPLATE_SRC = "template.png"; // 同じフォルダに置く
+
+  // 水色7枠（テンプレ画像から抽出した座標）
+  const PHOTO_RECTS = [
+    {x:  53, y:  63, w:300, h:404},
+    {x: 388, y:  64, w:300, h:401},
+    {x: 723, y:  63, w:301, h:403},
+    {x:1058, y:  63, w:301, h:403},
+    {x:  53, y: 533, w:300, h:404},
+    {x: 388, y: 535, w:300, h:401},
+    {x: 723, y: 534, w:301, h:403},
+  ];
+
+  // 右下の空き枠（ロゴを配置）
+  const LOGO_RECT = {x:1058, y:534, w:301, h:403};
+
+  // 右側余白（回転テキスト領域）
+  const SIDE_TEXT_AREA = {
+    x0: 1358,
+    x1: 1500,
+    y0: 0,
+    y1: 1000
+  };
+
+  const SIDE_TEXT_COLOR = "#539fd8";
+
+  // =========================
+  // DOM
+  // =========================
+  const canvas = document.getElementById("out");
+  const ctx = canvas.getContext("2d");
+
+  const photoInput = document.getElementById("photoInput");
+  const logoInput  = document.getElementById("logoInput");
+  const sideText   = document.getElementById("sideText");
+
+  const photoZoom = document.getElementById("photoZoom");
+  const photoOffX = document.getElementById("photoOffX");
+  const photoOffY = document.getElementById("photoOffY");
+
+  const logoZoom = document.getElementById("logoZoom");
+  const logoOffX = document.getElementById("logoOffX");
+  const logoOffY = document.getElementById("logoOffY");
+
+  const saveBtn = document.getElementById("saveBtn");
+  const resetBtn = document.getElementById("resetBtn");
+  const reloadTplBtn = document.getElementById("reloadTplBtn");
+
+  // =========================
+  // Assets
+  // =========================
+  let templateImg = null;
+  let photoImg = null;
+  let logoImg = null;
+
+  function loadImageFromUrl(url){
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      // ★CORS対策（同一オリジンなら害なし。別オリジンは相手の許可が必要）
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = reject;
+      img.src = url;
+    });
+  }
+
+  async function loadTemplate(){
+    templateImg = await loadImageFromUrl(TEMPLATE_SRC);
+    canvas.width  = templateImg.naturalWidth;
+    canvas.height = templateImg.naturalHeight;
+  }
+
+  async function loadImageFromFile(file){
+    const dataUrl = await new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = () => resolve(r.result);
+      r.onerror = reject;
+      r.readAsDataURL(file);
+    });
+    return await loadImageFromUrl(dataUrl);
+  }
+
+  // =========================
+  // Draw helpers
+  // =========================
+
+  // 写真用：3:4に切り出し → 縦横比を崩さず、枠内に中央配置（余白が出ることあり）
+  function drawPhotoCrop34Fit(img, rect, zoom=1, offX=0, offY=0){
+    if(!img) return;
+
+    const targetAspect = 3/4; // ★縦長 3:4
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+
+    // 3:4になるように切り出す領域（sw, sh）
+    let sw, sh;
+    if (iw/ih > targetAspect){
+      sh = ih;
+      sw = ih * targetAspect;
+    } else {
+      sw = iw;
+      sh = iw / targetAspect;
+    }
+
+    // オフセット（-0.3..0.3）を中心からずらす
+    const cx = iw/2 + offX * sw;
+    const cy = ih/2 + offY * sh;
+
+    // ズーム（>1で寄る）
+    const z = Math.max(1, zoom);
+    const zsw = sw / z;
+    const zsh = sh / z;
+
+    let sx = cx - zsw/2;
+    let sy = cy - zsh/2;
+
+    // 範囲外を防ぐ
+    sx = Math.max(0, Math.min(iw - zsw, sx));
+    sy = Math.max(0, Math.min(ih - zsh, sy));
+
+    // 枠は3:4とは限らないので、引き伸ばさず3:4のまま収める
+    const rectAspect = rect.w / rect.h;
+
+    let dw, dh;
+    if (rectAspect > targetAspect){
+      dh = rect.h;
+      dw = dh * targetAspect;
+    } else {
+      dw = rect.w;
+      dh = dw / targetAspect;
+    }
+
+    const dx = rect.x + (rect.w - dw) / 2;
+    const dy = rect.y + (rect.h - dh) / 2;
+
+    // 枠内にクリップして描画
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.drawImage(img, sx, sy, zsw, zsh, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  // ロゴ用：全体が必ず枠に収まる（contain）。縦横比は絶対に崩れない。
+  function drawLogoContain(img, rect, zoom=1, offX=0, offY=0){
+    if(!img) return;
+
+    const iw = img.naturalWidth;
+    const ih = img.naturalHeight;
+    const ia = iw / ih;
+    const ra = rect.w / rect.h;
+
+    // まず「必ず収まる」基本サイズ（contain）
+    let dw, dh;
+    if(ia > ra){
+      dw = rect.w;
+      dh = dw / ia;
+    } else {
+      dh = rect.h;
+      dw = dh * ia;
+    }
+
+    // zoomは「収まった状態」を基準に拡大縮小
+    const z = Math.max(0.05, zoom);
+    dw *= z;
+    dh *= z;
+
+    // 枠内余白で中央＋オフセット
+    const roomX = rect.w - dw;
+    const roomY = rect.h - dh;
+
+    // offX/offY は rect サイズ基準で移動（扱いやすさ優先）
+    let dx = rect.x + roomX/2 + offX * rect.w;
+    let dy = rect.y + roomY/2 + offY * rect.h;
+
+    // 枠から完全に外へ行き過ぎないように軽く制限（任意）
+    dx = Math.max(rect.x - dw, Math.min(rect.x + rect.w, dx));
+    dy = Math.max(rect.y - dh, Math.min(rect.y + rect.h, dy));
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(rect.x, rect.y, rect.w, rect.h);
+    ctx.clip();
+    ctx.drawImage(img, dx, dy, dw, dh);
+    ctx.restore();
+  }
+
+  function drawSideText(text){
+    const t = (text || "").trim();
+    if(!t) return;
+
+    const areaW = SIDE_TEXT_AREA.x1 - SIDE_TEXT_AREA.x0;
+    const areaH = SIDE_TEXT_AREA.y1 - SIDE_TEXT_AREA.y0;
+
+    let fontSize = Math.floor(Math.min(42, Math.max(18, areaW * 0.36)));
+
+    ctx.save();
+    ctx.translate(SIDE_TEXT_AREA.x0 + areaW/2, SIDE_TEXT_AREA.y0 + areaH/2);
+    ctx.rotate(-Math.PI/2); // 90度回転
+
+    ctx.fillStyle = SIDE_TEXT_COLOR;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    // 収まるまで縮小（回転後の横幅＝areaH相当）
+    const maxLen = areaH * 0.9;
+    while(fontSize > 10){
+      ctx.font = `600 ${fontSize}px "Noto Sans JP","Noto Sans",sans-serif`;
+      const w = ctx.measureText(t).width;
+      if(w <= maxLen) break;
+      fontSize -= 1;
+    }
+
+    ctx.fillText(t, 0, 0);
+    ctx.restore();
+  }
+
+  function render(){
+    if(!templateImg){
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "#fff";
+      ctx.fillRect(0,0,canvas.width,canvas.height);
+      ctx.fillStyle = "#6b7a88";
+      ctx.font = '14px "Noto Sans JP", sans-serif';
+      ctx.fillText("template.png を読み込めませんでした。HTMLと同じフォルダに template.png を置いてください。", 20, 30);
+      return;
+    }
+
+    // 1) テンプレ
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.drawImage(templateImg, 0, 0);
+
+    // 2) 写真（7枠）
+    const pz = parseFloat(photoZoom.value);
+    const px = parseFloat(photoOffX.value);
+    const py = parseFloat(photoOffY.value);
+    for(const r of PHOTO_RECTS){
+      drawPhotoCrop34Fit(photoImg, r, pz, px, py);
+    }
+
+    // 3) ロゴ（右下：全体が収まる）
+    const lz = parseFloat(logoZoom.value);
+    const lx = parseFloat(logoOffX.value);
+    const ly = parseFloat(logoOffY.value);
+    drawLogoContain(logoImg, LOGO_RECT, lz, lx, ly);
+
+    // 4) 右余白テキスト
+    drawSideText(sideText.value);
+  }
+
+  // =========================
+  // Events
+  // =========================
+  const rerender = () => render();
+
+  photoInput.addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if(!f) return;
+    photoImg = await loadImageFromFile(f);
+    render();
+  });
+
+  logoInput.addEventListener("change", async (e) => {
+    const f = e.target.files?.[0];
+    if(!f) { logoImg = null; render(); return; }
+    logoImg = await loadImageFromFile(f);
+    // ★横長ロゴでも「最初から収まる」状態に（ズームを1に戻す）
+    logoZoom.value = 1;
+    logoOffX.value = 0;
+    logoOffY.value = 0;
+    render();
+  });
+
+  sideText.addEventListener("input", rerender);
+
+  [photoZoom, photoOffX, photoOffY, logoZoom, logoOffX, logoOffY].forEach(el => {
+    el.addEventListener("input", rerender);
+  });
+
+  resetBtn.addEventListener("click", () => {
+    photoZoom.value = 1;
+    photoOffX.value = 0;
+    photoOffY.value = 0;
+    logoZoom.value = 1;
+    logoOffX.value = 0;
+    logoOffY.value = 0;
+    render();
+  });
+
+  reloadTplBtn.addEventListener("click", async () => {
+    await init();
+  });
+
+  saveBtn.addEventListener("click", () => {
+    try{
+      canvas.toBlob((blob) => {
+        if(!blob) return;
+        const a = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        a.href = url;
+        a.download = "output.png";
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      }, "image/png");
+    }catch(err){
+      console.error(err);
+      alert("保存できませんでした。file:// 直開きの場合、httpで開く（localhostやGitHub Pages）と解決することがあります。");
+    }
+  });
+
+  // =========================
+  // Init
+  // =========================
+  async function init(){
+    try{
+      await loadTemplate();
+    }catch(e){
+      templateImg = null;
+    }
+    render();
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
